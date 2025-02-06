@@ -6,7 +6,17 @@ import { cloudflareAIGatewayUrl } from "../utils/cloudflare";
 
 const serverConfig = getServerSideConfig();
 
+function fixFcNextUrl(req: NextRequest) {
+  const regex = /^http:\/\/n\/http\,%20+/;
+  if (regex.test(req.nextUrl.href)) {
+    let url = new URL(req.nextUrl.href.replace(regex, ""));
+    req.nextUrl.pathname = url.pathname;
+    req.nextUrl.href = url.href;
+  }
+}
+
 export async function requestOpenai(req: NextRequest) {
+  fixFcNextUrl(req);
   const controller = new AbortController();
 
   const isAzure = req.nextUrl.pathname.includes("azure/deployments");
@@ -28,9 +38,12 @@ export async function requestOpenai(req: NextRequest) {
   }
 
   let path = `${req.nextUrl.pathname}`.replaceAll("/api/openai/", "");
+  const defaultBaseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
   let baseUrl =
-    (isAzure ? serverConfig.azureUrl : serverConfig.baseUrl) || OPENAI_BASE_URL;
+    (isAzure ? serverConfig.azureUrl : serverConfig.baseUrl) ||
+    defaultBaseUrl ||
+    OPENAI_BASE_URL;
 
   if (!baseUrl.startsWith("http")) {
     baseUrl = `https://${baseUrl}`;

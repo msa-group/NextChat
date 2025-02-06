@@ -12,10 +12,20 @@ import { handle as stabilityHandler } from "../../stability";
 import { handle as iflytekHandler } from "../../iflytek";
 import { handle as proxyHandler } from "../../proxy";
 
+function fixFcNextUrl(req: NextRequest) {
+  const regex = /^http:\/\/n\/http\,%20+/;
+  if (regex.test(req.nextUrl.href)) {
+    let url = new URL(req.nextUrl.href.replace(regex, ""));
+    req.nextUrl.pathname = url.pathname;
+    req.nextUrl.href = url.href;
+  }
+}
+
 async function handle(
   req: NextRequest,
   { params }: { params: { provider: string; path: string[] } },
 ) {
+  fixFcNextUrl(req);
   const apiPath = `/api/${params.provider}`;
   console.log(`[${params.provider} Route] params `, params);
   switch (apiPath) {
